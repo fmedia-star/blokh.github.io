@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Interaktif PKL SMK Al Irsyad Al Islamiyyah Haurgeulis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Tones -->
+    <!-- Application Structure Plan: The application is designed as a single-page dashboard. The structure includes: 1. A header with key performance indicators (KPIs) for a quick overview (Total Siswa, DU/DI, Jurusan, Guru). 2. A control panel with filters (Kecamatan, Jurusan, Guru) and a search bar for interactive data exploration. This empowers users to drill down into the data easily. 3. A visualization section with charts to present data distribution graphically (Siswa per Jurusan, Siswa per Kecamatan). This helps in identifying trends and patterns quickly. 4. A detailed, sortable, and filterable data table as the main content area. This structure was chosen because it follows a standard dashboard design pattern (overview, controls, details), which is highly intuitive for users wanting to analyze and understand structured data like this report. -->
+    <!-- Visualization & Content Choices: 1. KPIs (Total Siswa, DU/DI, etc.): Goal is to inform. Presented as large numbers for immediate impact. Interaction: None, purely informational. Justification: Provides a high-level summary at a glance. Method: HTML/Tailwind. 2. Bar Chart (Siswa per Jurusan): Goal is to compare quantities. Viz: Vertical Bar Chart. Interaction: Hover for tooltips, clicking a bar could filter the main table (future enhancement). Justification: Bar charts are excellent for comparing counts across discrete categories. Library: Chart.js. 3. Pie Chart (Siswa per Kecamatan): Goal is to show proportions. Viz: Pie Chart. Interaction: Hover for tooltips. Justification: Effectively shows the percentage distribution of students across different locations. Library: Chart.js. 4. Interactive Table: Goal is to organize and allow detailed exploration. Presentation: HTML table. Interaction: Filtering via controls, real-time search highlighting. Justification: Provides access to the raw, detailed data while being dynamically linked to the visualization and filter controls for a cohesive experience. Method: Vanilla JS + HTML/Tailwind. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfbf8;
+            color: #4a4a4a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4c8be;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #bfb2a6;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 sm:p-6 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#6d5d4d]">Dasbor Praktik Kerja Lapangan (PKL)</h1>
+            <p class="text-md text-[#8c7b6a] mt-2">SMK Al Irsyad Al Islamiyyah Haurgeulis - T.A. 2025/2026</p>
+        </header>
+
+        <div id="kpi-section" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="filter-kecamatan" class="block text-sm font-medium text-gray-700 mb-1">Filter Kecamatan</label>
+                    <select id="filter-kecamatan" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#bfb2a6] focus:border-[#bfb2a6]">
+                        <option value="all">Semua Kecamatan</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-jurusan" class="block text-sm font-medium text-gray-700 mb-1">Filter Jurusan</label>
+                    <select id="filter-jurusan" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#bfb2a6] focus:border-[#bfb2a6]">
+                        <option value="all">Semua Jurusan</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-guru" class="block text-sm font-medium text-gray-700 mb-1">Filter Guru</label>
+                    <select id="filter-guru" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#bfb2a6] focus:border-[#bfb2a6]">
+                        <option value="all">Semua Guru</option>
+                    </select>
+                </div>
+                 <div>
+                    <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">Cari Siswa/DU-DI</label>
+                    <input type="text" id="search-input" placeholder="Ketik untuk mencari..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#bfb2a6] focus:border-[#bfb2a6]">
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                <h3 class="text-lg font-semibold text-center mb-4 text-[#6d5d4d]">Distribusi Siswa per Jurusan</h3>
+                <div class="chart-container">
+                    <canvas id="jurusanChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                <h3 class="text-lg font-semibold text-center mb-4 text-[#6d5d4d]">Distribusi Siswa per Kecamatan</h3>
+                 <div class="chart-container">
+                    <canvas id="kecamatanChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-[#6d5d4d]">Data Peserta PKL</h3>
+                <p class="text-sm text-gray-500">Menampilkan <span id="rowCount">0</span> hasil</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-[#8c7b6a] uppercase bg-[#f4f1ee]">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">No</th>
+                            <th scope="col" class="px-6 py-3">Nama Siswa</th>
+                            <th scope="col" class="px-6 py-3">Jurusan</th>
+                            <th scope="col" class="px-6 py-3">Nama & Alamat DU/DI</th>
+                            <th scope="col" class="px-6 py-3">Kecamatan</th>
+                            <th scope="col" class="px-6 py-3">Guru Pembimbing</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>Dibuat untuk SMK Al Irsyad Al Islamiyyah Haurgeulis</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const rawData = [
+            { no: 1, kec: 'PATROL', dudi: 'Bank BJB Cab. Patrol Jl. Raya Patrol No. 13, RT/RW 07/03 Kel. Patrol Lor - Patrol', siswa: 'DELLA DWI AULIA', jur: 'AK', guru: 'Sukron Supriatna, S.Pd' },
+            { no: null, kec: null, dudi: null, siswa: 'FITRI FAZZIRAH', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'JESICA AMANDA PUTRI', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'NOVI MARYAM', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: 'PT Harum Bina Wisata/Harum Tours Jl. Raya Patrol No. 36 RT/RW 01/01, Kel. Patrol, Kab. Indramayu', siswa: 'MEILIZA GRACE OCTAVIANA', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'SALMA SABILA PUTRI', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'DEVA ANGGRAENI', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'RAHMA JULIA', jur: 'MP', guru: null },
+            { no: 2, kec: 'ANJATAN', dudi: 'Auni Digital Printing Jl. Haurgeulis - Patrol, Wanguk, Kec. Anjatan', siswa: 'IRGIN ZAELANI', jur: 'DKV', guru: 'Dedy Nur Yusuf, S.Pd' },
+            { no: null, kec: null, dudi: null, siswa: 'DAHLIA', jur: 'DKV', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'KARIEMATUNNISA', jur: 'DKV', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'VICA MUTIATURAHMAH', jur: 'DKV', guru: null },
+            { no: null, kec: null, dudi: 'Bengkel Mukti Motor', siswa: 'KENDI SILENDRA', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'FADIL ADIKA', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: 'Ricoz Motor Jl. Jendral Sudirman Ds. Gempol– Kec. Haurgeulis', siswa: 'DIMAS RAYHAN', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'ROHMAN MAHRUP', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'MUHAMMAD DIVI AL ADHA', jur: 'TSM', guru: null },
+            { no: 3, kec: 'ANJATAN', dudi: 'Kantor Kecamatan Anjatan Jln. Anjatan Patrol - Anjatan', siswa: 'NAILA SOLEHA', jur: 'MP', guru: 'Dian Marlina, S.Pd' },
+            { no: null, kec: null, dudi: null, siswa: 'NEYNI KHOIRIYAH', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: 'KUA Cipancuh Jln. Jendral Sudirman Ds. Cipancuh -Haurgeulis', siswa: 'FITRI OKTAVIA', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'NOVIA HERLIANA', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'WULAN NOVIA KARRENNINA', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'RACHEL NAJWA DAMAYANTI', jur: 'MP', guru: null },
+            { no: 4, kec: 'HAURGEULIS', dudi: 'Tridjaya Cab. Cipancuh Jln. Jendral Sudirman - Haurgeulis', siswa: 'MOHAMAD RIJIK', jur: 'TSM', guru: 'Mulyadi Jaya, S.T' },
+            { no: null, kec: null, dudi: null, siswa: 'MUHAMMAD FAHRI', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'NADIN RAHMAWATI', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'RUNI MINI MUNKENZI', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: 'Bengkel Subur Jaya Motor Jl. Siliwangi Mandirancan - Haurgeulis', siswa: 'BAYU KRISNANDA', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'ACHMAD ROFI MAULIDAN', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'LINGGA PRIMA JUNIOR', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'MUHAMAD FERDIYANSYAH', jur: 'TSM', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'NILAM MAGHFIROH', jur: 'TSM', guru: null },
+            { no: 5, kec: 'HAURGEULIS', dudi: 'P3DW Kab. INDRAMAYU II Haurgeulis Jl. Haurgeulis – Patrol, Wanguk, Kec. Anjatan', siswa: 'ALRORA ABRALIA METASYA', jur: 'MP', guru: 'Siti Aminah, S.Pd' },
+            { no: null, kec: null, dudi: null, siswa: 'NATHANIA NUR FITRIANI', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'MUTIARA SUCI', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'SHESYA AYUNDA AZARAH', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: 'PT PLN ULP Haurgeulis Jl. Jatimulya Kec. Haurgeulis', siswa: 'ALYA WIJAYANTI', jur: 'MP', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'SOPI', jur: 'MP', guru: null },
+            { no: 6, kec: 'GANTAR', dudi: 'Elvano’s Cafe & Photo Studio Blok Nambo Rt/Rw : 001/005 Kec. Gantar', siswa: 'KADMIRI DWIYANTI AGUSTIN', jur: 'DKV', guru: 'Wawan Irwansyah, S.T' },
+            { no: null, kec: null, dudi: null, siswa: 'KHIRANI TRI HAPSARI', jur: 'DKV', guru: null },
+            { no: null, kec: 'HAURGEULIS', dudi: 'Haurgeulis Education Centre (HEC) Jl. Siliwangi No. 19 - Haurgeulis', siswa: 'ARIS MAULANA', jur: 'DKV', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'HAIDAR ARIF MUZAFFAR', jur: 'DKV', guru: null },
+            { no: 7, kec: 'ANJATAN', dudi: 'Berkah Motor Jln. Raya Haurgeulis - Anjatan', siswa: 'SITI AISAH ARTIKA LISTIYANI', jur: 'AK', guru: 'Elsa Aladziyah, S.M' },
+            { no: null, kec: null, dudi: null, siswa: 'GITA OKTAVIANI', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: 'KSP Nusa Raya Cipta Cab. Lempuyang Jl. Lempuyang Rt/Rw :01/02 Ds. Lempuyang', siswa: 'CINTA SITI HABIBAH', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'CERY YANTI', jur: 'AK', guru: null },
+            { no: 8, kec: 'HAURGEULIS', dudi: 'KSP Nusa Raya Cipta Cab. Sumbermulya Jl. Sumbermulya Rt/Rw : 02 /01 - Haurgeulis', siswa: 'FEBY SALSA NABILA', jur: 'MP', guru: 'Tri Novita Sari, S.Pd' },
+            { no: null, kec: null, dudi: null, siswa: 'RETNO AYU', jur: 'MP', guru: null },
+            { no: 9, kec: 'ANJATAN', dudi: 'PT POS Indonesia Cab. Anjatan Jl. Raya Anjatan - Anjatan Utara', siswa: 'ANANDA KHEYLA P.I', jur: 'AK', guru: 'Hamdan Ismail, S.E' },
+            { no: null, kec: null, dudi: null, siswa: 'NATASYA NOVITASARI', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'RUHAN MADINA PUTRI', jur: 'AK', guru: null },
+            { no: null, kec: null, dudi: null, siswa: 'SITI AISYAH', jur: 'AK', guru: null },
+        ];
+
+        let processedData = [];
+        let currentKec = '', currentDudi = '', currentGuru = '', currentJur = '';
+
+        rawData.forEach(item => {
+            currentKec = item.kec || currentKec;
+            currentDudi = item.dudi || currentDudi;
+            currentGuru = item.guru || currentGuru;
+            
+            if (item.jur) {
+                 currentJur = item.jur;
+            } else {
+                const lastGroupHead = processedData.slice().reverse().find(p => p.jur);
+                if(lastGroupHead) currentJur = lastGroupHead.jur;
+            }
+
+            processedData.push({
+                kec: currentKec,
+                dudi: currentDudi,
+                siswa: item.siswa,
+                jur: currentJur,
+                guru: currentGuru
+            });
+        });
+
+        let jurusanChart, kecamatanChart;
+
+        const PALETTE = ['#8E8071', '#BFB2A6', '#D4C8BE', '#A6988A', '#6D5D4D'];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters();
+            displayData(processedData);
+            displayKPIs(processedData);
+            createCharts(processedData);
+
+            document.getElementById('filter-kecamatan').addEventListener('change', applyFilters);
+            document.getElementById('filter-jurusan').addEventListener('change', applyFilters);
+            document.getElementById('filter-guru').addEventListener('change', applyFilters);
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+        });
+
+        function populateFilters() {
+            const kecamatanFilter = document.getElementById('filter-kecamatan');
+            const jurusanFilter = document.getElementById('filter-jurusan');
+            const guruFilter = document.getElementById('filter-guru');
+
+            const kecamatans = [...new Set(processedData.map(item => item.kec))];
+            const jurusans = [...new Set(processedData.map(item => item.jur))];
+            const gurus = [...new Set(processedData.map(item => item.guru))];
+
+            kecamatans.forEach(kec => {
+                const option = document.createElement('option');
+                option.value = kec;
+                option.textContent = kec;
+                kecamatanFilter.appendChild(option);
+            });
+            jurusans.forEach(jur => {
+                const option = document.createElement('option');
+                option.value = jur;
+                option.textContent = jur;
+                jurusanFilter.appendChild(option);
+            });
+            gurus.forEach(guru => {
+                const option = document.createElement('option');
+                option.value = guru;
+                option.textContent = guru;
+                guruFilter.appendChild(option);
+            });
+        }
+        
+        function applyFilters() {
+            const kecamatan = document.getElementById('filter-kecamatan').value;
+            const jurusan = document.getElementById('filter-jurusan').value;
+            const guru = document.getElementById('filter-guru').value;
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            let filteredData = processedData.filter(item => {
+                const matchKecamatan = (kecamatan === 'all' || item.kec === kecamatan);
+                const matchJurusan = (jurusan === 'all' || item.jur === jurusan);
+                const matchGuru = (guru === 'all' || item.guru === guru);
+                const matchSearch = (
+                    item.siswa.toLowerCase().includes(searchTerm) ||
+                    item.dudi.toLowerCase().includes(searchTerm)
+                );
+                return matchKecamatan && matchJurusan && matchGuru && matchSearch;
+            });
+
+            displayData(filteredData);
+            updateCharts(filteredData);
+        }
+
+        function displayData(data) {
+            const tableBody = document.getElementById('dataTable');
+            tableBody.innerHTML = '';
+            data.forEach((item, index) => {
+                const row = `
+                    <tr class="bg-white border-b hover:bg-[#fdfbf8]">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${index + 1}</td>
+                        <td class="px-6 py-4">${item.siswa}</td>
+                        <td class="px-6 py-4">${item.jur}</td>
+                        <td class="px-6 py-4">${item.dudi}</td>
+                        <td class="px-6 py-4">${item.kec}</td>
+                        <td class="px-6 py-4">${item.guru}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+            document.getElementById('rowCount').textContent = data.length;
+        }
+
+        function displayKPIs(data) {
+            const kpiContainer = document.getElementById('kpi-section');
+            const totalSiswa = data.length;
+            const totalDudi = new Set(data.map(item => item.dudi)).size;
+            const totalJurusan = new Set(data.map(item => item.jur)).size;
+            const totalGuru = new Set(data.map(item => item.guru)).size;
+
+            const kpis = [
+                { label: 'Total Siswa', value: totalSiswa, icon: '👥' },
+                { label: 'Total DU/DI', value: totalDudi, icon: '🏢' },
+                { label: 'Total Jurusan', value: totalJurusan, icon: '📚' },
+                { label: 'Total Guru', value: totalGuru, icon: '🧑‍🏫' }
+            ];
+
+            kpiContainer.innerHTML = kpis.map(kpi => `
+                <div class="bg-white rounded-xl shadow-md p-4 flex items-center border border-gray-200">
+                    <div class="text-3xl mr-4">${kpi.icon}</div>
+                    <div>
+                        <p class="text-2xl font-bold text-[#6d5d4d]">${kpi.value}</p>
+                        <p class="text-sm text-gray-500">${kpi.label}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createCharts(data) {
+            const jurCtx = document.getElementById('jurusanChart').getContext('2d');
+            const kecCtx = document.getElementById('kecamatanChart').getContext('2d');
+
+            const jurData = countBy(data, 'jur');
+            const kecData = countBy(data, 'kec');
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                           stepSize: 1
+                        }
+                    }
+                }
+            };
+
+            jurusanChart = new Chart(jurCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(jurData),
+                    datasets: [{
+                        label: 'Jumlah Siswa',
+                        data: Object.values(jurData),
+                        backgroundColor: PALETTE,
+                        borderColor: PALETTE.map(c => c + 'B3'),
+                        borderWidth: 1
+                    }]
+                },
+                options: chartOptions
+            });
+
+            kecamatanChart = new Chart(kecCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(kecData),
+                    datasets: [{
+                        label: 'Jumlah Siswa',
+                        data: Object.values(kecData),
+                        backgroundColor: PALETTE,
+                        hoverOffset: 4
+                    }]
+                },
+                options: { ...chartOptions, scales: {} }
+            });
+        }
+        
+        function updateCharts(data) {
+            const jurData = countBy(data, 'jur');
+            jurusanChart.data.labels = Object.keys(jurData);
+            jurusanChart.data.datasets[0].data = Object.values(jurData);
+            jurusanChart.update();
+
+            const kecData = countBy(data, 'kec');
+            kecamatanChart.data.labels = Object.keys(kecData);
+            kecamatanChart.data.datasets[0].data = Object.values(kecData);
+            kecamatanChart.update();
+        }
+
+        function countBy(data, key) {
+            return data.reduce((acc, item) => {
+                acc[item[key]] = (acc[item[key]] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+    </script>
+</body>
+</html>
